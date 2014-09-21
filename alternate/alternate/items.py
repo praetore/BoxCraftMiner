@@ -1,14 +1,29 @@
 # -*- coding: utf-8 -*-
-
-# Define here the models for your scraped items
-#
-# See documentation in:
-# http://doc.scrapy.org/en/latest/topics/items.html
-
-import scrapy
+from scrapy import Field, Item
 
 
-class AlternateItem(scrapy.Item):
-    # define the fields for your item here like:
-    # name = scrapy.Field()
-    pass
+class Product(Item):
+    manufacturer = Field()
+    name = Field()
+    price = Field()
+
+
+class CPUItem(Product):
+    socket = Field()
+    speed = Field()
+    cores = Field()
+
+
+class MemoryItem(Product):
+    type = Field()
+    amount = Field()
+    slots = Field()
+
+
+class MainboardItem(Product):
+    socket = Field()
+    formfactor = Field()
+    mem_slots = Field()
+    mem_max = Field()
+    sata_slots = Field()
+    usb_slots = Field()
