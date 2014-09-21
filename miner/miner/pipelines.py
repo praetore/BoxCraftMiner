@@ -31,7 +31,12 @@ def validate_numerical(itemfield):
 
 def get_memory_type(itemfield):
     itemfield = cleanup_field(itemfield)
-    return re.search(r'DDR\d*-\d*', itemfield).group()
+    return re.search(r'DDR\d*-\d+', itemfield).group()
+
+
+def get_gpu_memory_amount_type(itemfield, group):
+    itemfield = cleanup_field(itemfield)
+    return re.match(r'^(\d+ [G|M]B) \((\w+)', itemfield).group(group)
 
 
 class CsvExporterPipeline(object):
@@ -81,8 +86,8 @@ class ValidationPipeline(object):
             return item
         elif isinstance(item, GPUItem):
             item['chipset'] = cleanup_field(item['chipset'])
-            item['mem_type'] = cleanup_field(item['mem_type'])
-            item['mem_amount'] = cleanup_field(item['mem_amount'])
+            item['mem_type'] = get_gpu_memory_amount_type(item['mem_type'], 2)
+            item['mem_amount'] = get_gpu_memory_amount_type(item['mem_amount'], 1)
             item['slots'] = validate_numerical(item['slots'])
             return item
         elif isinstance(item, MemoryItem):
