@@ -2,7 +2,7 @@
 import scrapy
 
 
-class ComputerstoreSpiderSpider(scrapy.Spider):
+class ComputerSpider(scrapy.Spider):
     name = "computerstore"
     allowed_domains = ["computerstore.nl"]
     start_urls = (

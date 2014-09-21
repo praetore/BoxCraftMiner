@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 import scrapy
 from scrapy.selector import HtmlXPathSelector
-from alternate.items import CPUItem
+from miner.items import CPUItem
 
 
-class AlternatespiderSpider(scrapy.Spider):
-    name = "alternate"
+class AlternateSpider(scrapy.Spider):
+    name = "miner"
     allowed_domains = ["alternate.nl"]
     start_urls = (
         'http://www.alternate.nl/html/product/listing.html?filter_5=&filter_4=&filter_3=&filter_2=&filter_1=&size=500&bgid=10846&lk=9487&tk=7&navId=11572#listingResult',

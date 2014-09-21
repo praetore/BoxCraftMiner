@@ -9,3 +9,8 @@
 class AlternatePipeline(object):
     def process_item(self, item, spider):
         return item
+
+
+class ComputerstorePipeline(object):
+    def process_item(self, item, spider):
+        return item
