@@ -7,10 +7,17 @@ from miner.items import CPUItem, GPUItem, Product
 class AlternateSpider(scrapy.Spider):
     name = "miner"
     allowed_domains = ["alternate.nl"]
-    start_urls = (
-        'http://www.alternate.nl/html/product/listing.html?filter_5=&filter_4=&filter_3=&filter_2=&filter_1=&size=500&bgid=10846&lk=9487&tk=7&navId=11572',
-        'http://www.alternate.nl/html/product/listing.html?filter_5=&filter_4=&filter_3=&filter_2=&filter_1=&size=500&bgid=11369&lk=9374&tk=7&navId=11606',
-    )
+    product_urls = {
+        'cpu_listings': 'http://www.alternate.nl/html/product/listing.html'
+                        '?filter_5=&filter_4=&filter_3=&filter_2=&filter_1'
+                        '=&size=500&bgid=10846&lk=9487&tk=7&navId=11572',
+        'gpu_listings_nvidia': 'http://www.alternate.nl/html/product/listing.html'
+                               '?filter_5=&filter_4=&filter_3=&filter_2=&filter_1'
+                               '=&size=500&bgid=11369&lk=9374&tk=7&navId=11606',
+        'gpu_listings_ati': 'http://www.alternate.nl/html/product/listing.html'
+                            '?filter_5=&filter_4=&filter_3=&filter_2=&filter_1'
+                            '=&size=500&bgid=10846&lk=9365&tk=7&navId=11608',
+    }
 
     item_field = {
         'name': 'a[@class="productLink"]/span[@class="product"]/'
@@ -31,6 +38,8 @@ class AlternateSpider(scrapy.Spider):
                        'sup/text()'
     }
 
+    start_urls = list(product_urls.values())
+
     def parse(self, response):
         hxs = HtmlXPathSelector(response)
         rows = hxs.select('//div[@class="listRow"]')
@@ -40,9 +49,10 @@ class AlternateSpider(scrapy.Spider):
             item['name'] = row.select(self.item_field['name']).extract()
             item['price'] = row.select(self.item_field['price_big']).extract() + \
                             row.select(self.item_field['price_small']).extract()
-            if response.url == self.start_urls[0]:
+            if response.url == self.product_urls['cpu_listings']:
                 yield self.get_cpu(row, item)
-            elif response.url == self.start_urls[1]:
+            elif response.url == self.product_urls['gpu_listings_nvidia'] or \
+                    response.url == self.product_urls['gpu_listings_ati']:
                 yield self.get_gpu(row, item)
 
     def get_gpu(self, row, product):
