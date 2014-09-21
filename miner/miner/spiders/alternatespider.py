@@ -62,7 +62,7 @@ class AlternateSpider(scrapy.Spider):
                 yield self.get_cpu(row, product)
             elif response.url in self.gpu_listings.values():
                 yield self.get_gpu(row, product)
-            elif response.url in self.memory_listings.values():
+            if response.url in self.memory_listings.values():
                 yield self.get_memory(row, product)
 
     def get_gpu(self, row, product):

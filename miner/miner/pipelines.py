@@ -1,11 +1,40 @@
 # -*- coding: utf-8 -*-
-
+import hashlib
+import re
 from miner.items import CPUItem, GPUItem, MemoryItem
 from scrapy import signals
 from scrapy.contrib.exporter import CsvItemExporter
 
 
-class MinerPipeline(object):
+def generate_id(item, spider):
+    itemstring = spider.name + item['name'] + item['manufacturer']
+    return hashlib.sha1(itemstring).hexdigest()
+
+
+def cleanup_field(itemfield):
+    return itemfield[0].encode('ascii', errors='ignore').strip().replace('  ', ' ')
+
+
+def validate_price(itemfield):
+    itemfield = cleanup_field(itemfield)
+    itemfield = itemfield.replace('-', '0')
+    itemfield = itemfield.replace(' ', '')
+    itemfield = itemfield.replace('.', '')
+    itemfield = itemfield.replace(',', '.')
+    return float(itemfield)
+
+
+def validate_numerical(itemfield):
+    itemfield = cleanup_field(itemfield)
+    return re.sub("[^0-9]", "", itemfield)
+
+
+def get_memory_type(itemfield):
+    itemfield = cleanup_field(itemfield)
+    return re.search(r'DDR\d*-\d*', itemfield).group()
+
+
+class CsvExporterPipeline(object):
     def __init__(self):
         self.files = {}
 
@@ -17,10 +46,6 @@ class MinerPipeline(object):
         return pipeline
 
     def process_item(self, item, spider):
-        if spider.name == 'alternate':
-            item = self.process_alternate(item)
-        elif spider.name == 'computerstore':
-            item = self.process_computerstore(item)
         self.exporter.export_item(item)
         return item
 
@@ -35,41 +60,35 @@ class MinerPipeline(object):
         csvfile = self.files.pop(spider.name)
         csvfile.close()
 
-    def cleanup_field(self, itemfield):
-        return itemfield[0].encode('ascii', errors='ignore').strip()
 
-    def validate_price(self, itemfield):
-        itemfield = self.cleanup_field(itemfield)
-        itemfield = itemfield.replace('-', '0')
-        itemfield = itemfield.replace(' ', '')
-        itemfield = itemfield.replace('.', '')
-        itemfield = itemfield.replace(',', '.')
-        return float(itemfield)
+class ValidationPipeline(object):
+    def process_item(self, item, spider):
+        if spider.name == 'alternate':
+            item = self.process_alternate(item)
+        elif spider.name == 'computerstore':
+            item = self.process_computerstore(item)
+        item['id'] = generate_id(item, spider)
+        return item
 
     def process_alternate(self, item):
-        item['manufacturer'] = self.cleanup_field(item['manufacturer'])
-        item['name'] = self.cleanup_field(item['name'])
-        item['price'] = self.validate_price(item['price'])
+        item['manufacturer'] = cleanup_field(item['manufacturer'])
+        item['name'] = cleanup_field(item['name'])
+        item['price'] = validate_price(item['price'])
         if isinstance(item, CPUItem):
-            # TODO: Convert to integer
-            item['cores'] = self.cleanup_field(item['cores'])
-            item['socket'] = self.cleanup_field(item['socket'])
-            # TODO: Convert to integer
-            item['speed'] = self.cleanup_field(item['speed'])
+            item['cores'] = validate_numerical(item['cores'])
+            item['socket'] = cleanup_field(item['socket'])
+            item['speed'] = validate_numerical(item['speed'])
             return item
         elif isinstance(item, GPUItem):
-            item['chipset'] = self.cleanup_field(item['chipset'])
-            # TODO: Split into separate fields
-            item['mem_type'] = self.cleanup_field(item['mem_type'])
-            item['mem_amount'] = self.cleanup_field(item['mem_amount'])
-            # TODO: Convert to integer
-            item['slots'] = self.cleanup_field(item['slots'])
+            item['chipset'] = cleanup_field(item['chipset'])
+            item['mem_type'] = cleanup_field(item['mem_type'])
+            item['mem_amount'] = cleanup_field(item['mem_amount'])
+            item['slots'] = validate_numerical(item['slots'])
             return item
         elif isinstance(item, MemoryItem):
-            item['type'] = self.cleanup_field(item['type'])
-            item['amount'] = self.cleanup_field(item['amount'])
-            # TODO: Convert to integer
-            item['slots'] = self.cleanup_field(item['slots'])
+            item['type'] = get_memory_type(item['type'])
+            item['amount'] = cleanup_field(item['amount'])
+            item['slots'] = validate_numerical(item['slots'])
             return item
 
     def process_computerstore(self, item):

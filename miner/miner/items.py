@@ -3,6 +3,7 @@ from scrapy import Field, Item
 
 
 class Product(Item):
+    id = Field()
     manufacturer = Field()
     name = Field()
     price = Field()
