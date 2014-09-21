@@ -27,3 +27,10 @@ class MainboardItem(Product):
     mem_max = Field()
     sata_slots = Field()
     usb_slots = Field()
+
+
+class GPUItem(Product):
+    chipset = Field()
+    mem_type = Field()
+    mem_amount = Field()
+    slots = Field()
