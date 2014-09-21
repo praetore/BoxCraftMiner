@@ -26,7 +26,7 @@ def validate_price(itemfield):
 
 def validate_numerical(itemfield):
     itemfield = cleanup_field(itemfield)
-    return re.sub("[^0-9]", "", itemfield)
+    return int(re.sub("[^0-9]", "", itemfield))
 
 
 def get_memory_type(itemfield):
