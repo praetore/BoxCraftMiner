@@ -2,6 +2,12 @@
 from scrapy import Field, Item
 
 
+class Converter(object):
+    @classmethod
+    def convert(cls, obj):
+        obj.__class__ = cls
+
+
 class Product(Item):
     id = Field()
     manufacturer = Field()
@@ -9,19 +15,19 @@ class Product(Item):
     price = Field()
 
 
-class CPUItem(Product):
+class CPUItem(Product, Converter):
     socket = Field()
     speed = Field()
     cores = Field()
 
 
-class MemoryItem(Product):
+class MemoryItem(Product, Converter):
     type = Field()
     amount = Field()
     slots = Field()
 
 
-class MainboardItem(Product):
+class MainboardItem(Product, Converter):
     socket = Field()
     formfactor = Field()
     mem_slots = Field()
@@ -30,7 +36,7 @@ class MainboardItem(Product):
     usb_slots = Field()
 
 
-class GPUItem(Product):
+class GPUItem(Product, Converter):
     chipset = Field()
     mem_type = Field()
     mem_amount = Field()
