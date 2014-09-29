@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import hashlib
 import re
-from miner.items import CPUItem, GPUItem, MemoryItem
+from miner.items import CPUItem, GPUItem, MemoryItem, MainboardItem
 from scrapy import signals
 from scrapy.contrib.exporter import CsvItemExporter
 
@@ -83,18 +83,23 @@ class ValidationPipeline(object):
             item['cores'] = validate_numerical(item['cores'])
             item['socket'] = cleanup_field(item['socket'])
             item['speed'] = validate_numerical(item['speed'])
-            return item
         elif isinstance(item, GPUItem):
             item['chipset'] = cleanup_field(item['chipset'])
             item['mem_type'] = get_gpu_memory_amount_type(item['mem_type'], 2)
             item['mem_amount'] = get_gpu_memory_amount_type(item['mem_amount'], 1)
             item['slots'] = validate_numerical(item['slots'])
-            return item
         elif isinstance(item, MemoryItem):
             item['type'] = get_memory_type(item['type'])
             item['amount'] = cleanup_field(item['amount'])
             item['slots'] = validate_numerical(item['slots'])
-            return item
+        elif isinstance(item, MainboardItem):
+            item['socket'] = cleanup_field(item['socket'])
+            item['formfactor'] = cleanup_field(item['formfactor'])
+            item['mem_slots'] = validate_numerical(item['mem_slots'])
+            item['mem_max'] = cleanup_field(item['mem_max'])
+            item['sata_slots'] = validate_numerical(item['sata_slots'])
+            item['usb_slots'] = validate_numerical(item['usb_slots'])
+        return item
 
     def process_computerstore(self, item):
         return item

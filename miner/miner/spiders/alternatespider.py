@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import re
+from urlparse import urlparse
 import scrapy
 from scrapy.selector import HtmlXPathSelector
-from miner.items import CPUItem, GPUItem, Product, MemoryItem, MainbordItem
+from miner.items import CPUItem, GPUItem, Product, MemoryItem, MainboardItem
 from unidecode import unidecode
 
 
@@ -71,13 +72,13 @@ class AlternateSpider(scrapy.Spider):
             product['name'] = row.select(self.item_field['name']).extract()
             product['price'] = row.select(self.item_field['price_big']).extract() + \
                                row.select(self.item_field['price_small']).extract()
-            if response.url in self.cpu_listings:
-                yield self.get_cpu(row, product)
-            elif response.url in self.gpu_listings.values():
-                yield self.get_gpu(row, product)
-            elif response.url in self.memory_listings.values():
-                yield self.get_memory(row, product)
-            elif response.url in self.gpu_listings.values():
+            # if response.url in self.cpu_listings:
+            #     yield self.get_cpu(row, product)
+            # elif response.url in self.gpu_listings.values():
+            #     yield self.get_gpu(row, product)
+            # elif response.url in self.memory_listings.values():
+            #     yield self.get_memory(row, product)
+            if response.url in self.mainboard_listings.values():
                 yield self.get_mainbord(row, product, response)
 
     def get_gpu(self, row, item):
@@ -104,25 +105,28 @@ class AlternateSpider(scrapy.Spider):
 
     def get_mainbord2(self, response):
         item = response.meta['item']
-        attributes = [unidecode(i) for i in response.xpath('//*[@id="details"]/div[4]/div/table/tr/'
-                                                               'td[@class="techDataCol2"]//td/text()').extract()]
+        attributes = [unidecode(i) for i in response.xpath('//*[@id="details"]/div[4]/div/table/tr/td[@class="techDataCol2"]//td/text()').extract()]
         for attribute_key in attributes:
-            usb_slots_pattern = re.match(r'(\d)x USB 2.0', attribute_key).group(1)
-            if attribute_key == 'Geheugen socket':
-                item['mem_slots'] = attribute_key
-            elif attribute_key == 'Maximaal'
-                item['mem_max'] = attribute_key
-            elif attribute_key == 'SATA':
-                item['sata_slots'] = attribute_key
-            elif usb_slots_pattern:
-                item['usb_slots'] = usb_slots_pattern
+            usb_slots_pattern = re.match(r'(\d)x USB 2.0', attribute_key)
+            attribute_index = attributes.index(attribute_key) + 1
+            if attribute_index < len(attributes):
+                attribute_value = attributes[attribute_index]
+                if attribute_key == 'Geheugen socket':
+                    item['mem_slots'] = attribute_value
+                elif attribute_key == 'Maximaal':
+                    item['mem_max'] = attribute_value
+                elif attribute_key == 'SATA':
+                    item['sata_slots'] = attribute_value
+                elif usb_slots_pattern:
+                    item['usb_slots'] = usb_slots_pattern.group(1)
         return item
 
     def get_mainbord(self, row, item, response):
-        MainbordItem.convert(item)
-        item['socket'] = row.select().extract(self.item_field['info_three'])
+        MainboardItem.convert(item)
+        item['socket'] = row.select(self.item_field['info_three']).extract()
         item['formfactor'] = row.select(self.item_field['info_one']).extract()
-        link = response.url + row.select('a[@class="productLink"]/@href').extract()
+        parsed_url = urlparse(response.url)
+        link = parsed_url.scheme + '://' + parsed_url.netloc + row.select('a[@class="productLink"]/@href').extract()[0]
         request = scrapy.Request(link, callback=self.get_mainbord2)
         request.meta['item'] = item
         return request
