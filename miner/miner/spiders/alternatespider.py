@@ -34,7 +34,8 @@ class AlternateSpider(scrapy.Spider):
                 '?navId=20678&tk=7&lk=13472'}
 
     mainboard_listings = {
-        'amd': 'http://www.alternate.nl/html/product/listing.html?navId=11622&tk=7&lk=9419',
+        'amd': 'http://www.alternate.nl/html/product/listing.html'
+               '?filter_5=&filter_4=&filter_3=&filter_2=&filter_1=&size=500&lk=7&tk=7&navId=11622',
         'intel': 'http://www.alternate.nl/html/product/listing.html?navId=11626&tk=7&lk=9435'
     }
 
@@ -57,10 +58,6 @@ class AlternateSpider(scrapy.Spider):
                        'sup/text()'
     }
 
-    mobo_item_fields = {
-
-    }
-
     start_urls = cpu_listings + list(gpu_listings.values()) + list(memory_listings.values()) + list(mainboard_listings.values())
 
     def parse(self, response):
@@ -72,13 +69,13 @@ class AlternateSpider(scrapy.Spider):
             product['name'] = row.select(self.item_field['name']).extract()
             product['price'] = row.select(self.item_field['price_big']).extract() + \
                                row.select(self.item_field['price_small']).extract()
-            # if response.url in self.cpu_listings:
-            #     yield self.get_cpu(row, product)
-            # elif response.url in self.gpu_listings.values():
-            #     yield self.get_gpu(row, product)
-            # elif response.url in self.memory_listings.values():
-            #     yield self.get_memory(row, product)
-            if response.url in self.mainboard_listings.values():
+            if response.url in self.cpu_listings:
+                yield self.get_cpu(row, product)
+            elif response.url in self.gpu_listings.values():
+                yield self.get_gpu(row, product)
+            elif response.url in self.memory_listings.values():
+                yield self.get_memory(row, product)
+            elif response.url in self.mainboard_listings.values():
                 yield self.get_mainbord(row, product, response)
 
     def get_gpu(self, row, item):
@@ -105,7 +102,8 @@ class AlternateSpider(scrapy.Spider):
 
     def get_mainbord2(self, response):
         item = response.meta['item']
-        attributes = [unidecode(i) for i in response.xpath('//*[@id="details"]/div[4]/div/table/tr/td[@class="techDataCol2"]//td/text()').extract()]
+        attributes = [unidecode(i) for i in response.xpath('//*[@id="details"]/div[4]/div/table/tr/'
+                                                           'td[@class="techDataCol2"]//td/text()').extract()]
         for attribute_key in attributes:
             usb_slots_pattern = re.match(r'(\d)x USB 2.0', attribute_key)
             attribute_index = attributes.index(attribute_key) + 1
