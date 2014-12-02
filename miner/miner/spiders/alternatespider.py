@@ -2,7 +2,6 @@
 import re
 from urlparse import urlparse
 import scrapy
-from scrapy.selector import HtmlXPathSelector
 from miner.items import CPUItem, GPUItem, Product, MemoryItem, MainboardItem
 from unidecode import unidecode
 
@@ -58,11 +57,11 @@ class AlternateSpider(scrapy.Spider):
                        'sup/text()'
     }
 
-    start_urls = cpu_listings + list(gpu_listings.values()) + list(memory_listings.values()) + list(mainboard_listings.values())
+    start_urls = cpu_listings + list(gpu_listings.values()) + list(memory_listings.values()) + \
+                 list(mainboard_listings.values())
 
     def parse(self, response):
-        hxs = HtmlXPathSelector(response)
-        rows = hxs.select('//div[@class="listRow"]')
+        rows = response.xpath('//div[@class="listRow"]')
         for row in rows:
             product = Product()
             product['manufacturer'] = row.select(self.item_field['manufacturer']).extract()
