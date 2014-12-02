@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import hashlib
+from pprint import pprint
 import re
 from miner.items import CPUItem, GPUItem, MemoryItem, MainboardItem
 from scrapy import signals
