@@ -1,43 +1,8 @@
 # -*- coding: utf-8 -*-
-import hashlib
-from pprint import pprint
-import re
-from miner.items import CPUItem, GPUItem, MemoryItem, MainboardItem
+from miner.items import CPUItem, GPUItem, MemoryItem, MainboardItem, CaseItem
 from scrapy import signals
 from scrapy.contrib.exporter import CsvItemExporter
-
-
-def generate_id(item, spider):
-    itemstring = spider.name + item['name'] + item['manufacturer']
-    return hashlib.sha1(itemstring).hexdigest()
-
-
-def cleanup_field(itemfield):
-    return itemfield[0].encode('ascii', errors='ignore').strip().replace('  ', ' ')
-
-
-def validate_price(itemfield):
-    itemfield = cleanup_field(itemfield)
-    itemfield = itemfield.replace('-', '0')
-    itemfield = itemfield.replace(' ', '')
-    itemfield = itemfield.replace('.', '')
-    itemfield = itemfield.replace(',', '.')
-    return float(itemfield)
-
-
-def validate_numerical(itemfield):
-    itemfield = cleanup_field(itemfield)
-    return int(re.sub("[^0-9]", "", itemfield))
-
-
-def get_memory_type(itemfield):
-    itemfield = cleanup_field(itemfield)
-    return re.search(r'DDR\d*-\d+', itemfield).group()
-
-
-def get_gpu_memory_amount_type(itemfield, group):
-    itemfield = cleanup_field(itemfield)
-    return re.match(r'^(\d+ [G|M]B) \((\w+)', itemfield).group(group)
+from miner.basepipeline import BasePipeline
 
 
 class CsvExporterPipeline(object):
@@ -67,40 +32,41 @@ class CsvExporterPipeline(object):
         csvfile.close()
 
 
-class ValidationPipeline(object):
+class ValidationPipeline(BasePipeline):
     def process_item(self, item, spider):
         if spider.name == 'alternate':
-            item = self.process_alternate(item)
+            item = self.clean_fields(item)
         elif spider.name == 'computerstore':
-            item = self.process_computerstore(item)
-        item['id'] = generate_id(item, spider)
+            item = self.clean_fields(item)
+        item['id'] = self.generate_id(item, spider)
         return item
 
-    def process_alternate(self, item):
-        item['manufacturer'] = cleanup_field(item['manufacturer'])
-        item['name'] = cleanup_field(item['name'])
-        item['price'] = validate_price(item['price'])
+    def clean_fields(self, item):
+        item['manufacturer'] = self.cleanup_field(item['manufacturer'])
+        item['name'] = self.cleanup_field(item['name'])
+        item['price'] = self.validate_price(item['price'])
         if isinstance(item, CPUItem):
-            item['cores'] = validate_numerical(item['cores'])
-            item['socket'] = cleanup_field(item['socket'])
-            item['speed'] = validate_numerical(item['speed'])
+            item['cores'] = self.validate_numerical(item['cores'])
+            item['socket'] = self.cleanup_field(item['socket'])
+            item['speed'] = self.validate_numerical(item['speed'])
         elif isinstance(item, GPUItem):
-            item['chipset'] = cleanup_field(item['chipset'])
-            item['mem_type'] = get_gpu_memory_amount_type(item['mem_type'], 2)
-            item['mem_amount'] = get_gpu_memory_amount_type(item['mem_amount'], 1)
-            item['slots'] = validate_numerical(item['slots'])
+            item['chipset'] = self.cleanup_field(item['chipset'])
+            item['mem_type'] = self.get_gpu_memory_amount_type(item['mem_type'], 2)
+            item['mem_amount'] = self.get_gpu_memory_amount_type(item['mem_amount'], 1)
+            item['slots'] = self.validate_numerical(item['slots'])
         elif isinstance(item, MemoryItem):
-            item['type'] = get_memory_type(item['type'])
-            item['amount'] = cleanup_field(item['amount'])
-            item['slots'] = validate_numerical(item['slots'])
+            item['type'] = self.get_memory_type(item['type'])
+            item['amount'] = self.cleanup_field(item['amount'])
+            item['slots'] = self.validate_numerical(item['slots'])
         elif isinstance(item, MainboardItem):
-            item['socket'] = cleanup_field(item['socket'])
-            item['formfactor'] = cleanup_field(item['formfactor'])
-            item['mem_slots'] = validate_numerical(item['mem_slots'])
-            item['mem_max'] = cleanup_field(item['mem_max'])
-            item['sata_slots'] = validate_numerical(item['sata_slots'])
-            item['usb_slots'] = validate_numerical(item['usb_slots'])
-        return item
-
-    def process_computerstore(self, item):
+            item['socket'] = self.cleanup_field(item['socket'])
+            item['formfactor'] = self.validate_formfactor(item['formfactor'])
+            item['mem_slots'] = self.validate_numerical(item['mem_slots'])
+            item['mem_max'] = self.cleanup_field(item['mem_max'])
+            item['sata_slots'] = self.validate_numerical(item['sata_slots'])
+            item['usb_slots'] = self.validate_numerical(item['usb_slots'])
+        elif isinstance(item, CaseItem):
+            item['formfactor_mobo'] = self.validate_formfactor(item['formfactor_mobo'])
+            item['formfactor_psu'] = self.validate_mobo_psu(item['formfactor_psu'])
+            item['color'] = self.validate_colors(item['color'], self._validcolors)
         return item

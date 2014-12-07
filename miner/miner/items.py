@@ -41,3 +41,18 @@ class GPUItem(Product, Converter):
     mem_type = Field()
     mem_amount = Field()
     slots = Field()
+
+
+class PSUItem(Product, Converter):
+    formfactor = Field()
+    power = Field()
+
+
+class CaseItem(Product, Converter):
+    formfactor_mobo = Field()
+    formfactor_psu = Field()
+    internal_35 = Field()
+    internal_25 = Field()
+    external_35 = Field()
+    external_525 = Field()
+    color = Field()

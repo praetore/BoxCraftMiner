@@ -2,8 +2,7 @@
 import re
 from urlparse import urlparse
 import scrapy
-from miner.items import CPUItem, GPUItem, Product, MemoryItem, MainboardItem
-from unidecode import unidecode
+from miner.items import CPUItem, GPUItem, Product, MemoryItem, MainboardItem, CaseItem, PSUItem
 
 
 class AlternateSpider(scrapy.Spider):
@@ -57,17 +56,24 @@ class AlternateSpider(scrapy.Spider):
                        'sup/text()'
     }
 
-    start_urls = cpu_listings + list(gpu_listings.values()) + list(memory_listings.values()) + \
-                 list(mainboard_listings.values())
+    case_listings = ['http://www.alternate.nl/html/product/listing.html?filter_5=&filter_4=&filter_3=&filter_2=&'
+                     'filter_1=&size=500&bgid=8148&lk=9309&tk=7&navId=2436',
+                     'http://www.alternate.nl/html/product/listing.html?filter_5=&filter_4=&filter_3=&filter_2=&'
+                     'filter_1=&size=500&page=2&bgid=8148&lk=9309&tk=7&navId=2436']
+
+
+    # start_urls = cpu_listings + list(gpu_listings.values()) + list(memory_listings.values()) + \
+    # list(mainboard_listings.values()) + case_listings
+    start_urls = list(case_listings)
 
     def parse(self, response):
         rows = response.xpath('//div[@class="listRow"]')
         for row in rows:
             product = Product()
-            product['manufacturer'] = row.select(self.item_field['manufacturer']).extract()
-            product['name'] = row.select(self.item_field['name']).extract()
-            product['price'] = row.select(self.item_field['price_big']).extract() + \
-                               row.select(self.item_field['price_small']).extract()
+            product['manufacturer'] = row.xpath(self.item_field['manufacturer']).extract()
+            product['name'] = row.xpath(self.item_field['name']).extract()
+            product['price'] = row.xpath(self.item_field['price_big']).extract() + \
+                               row.xpath(self.item_field['price_small']).extract()
             if response.url in self.cpu_listings:
                 yield self.get_cpu(row, product)
             elif response.url in self.gpu_listings.values():
@@ -76,6 +82,8 @@ class AlternateSpider(scrapy.Spider):
                 yield self.get_memory(row, product)
             elif response.url in self.mainboard_listings.values():
                 yield self.get_mainbord(row, product, response)
+            elif response.url in self.case_listings:
+                yield self.get_case(row, product, response)
 
     def get_gpu(self, row, item):
         GPUItem.convert(item)
@@ -99,10 +107,21 @@ class AlternateSpider(scrapy.Spider):
         item['slots'] = row.select(self.item_field['info_three']).extract()
         return item
 
+    def get_mainbord(self, row, item, response):
+        MainboardItem.convert(item)
+        item['socket'] = row.select(self.item_field['info_three']).extract()
+        item['formfactor'] = row.select(self.item_field['info_one']).extract()
+        parsed_url = urlparse(response.url)
+        link = parsed_url.scheme + '://' + parsed_url.netloc + \
+               row.select('a[@class="productLink"]/@href').extract()[0]
+        request = scrapy.Request(link, callback=self.get_mainbord2)
+        request.meta['item'] = item
+        return request
+
     def get_mainbord2(self, response):
         item = response.meta['item']
-        attributes = [unidecode(i) for i in response.xpath('//*[@id="details"]/div[4]/div/table/tr/'
-                                                           'td[@class="techDataCol2"]//td/text()').extract()]
+        attributes = [i for i in response.xpath('//*[@id="details"]/div[4]/div/table/tr/'
+                                                'td[@class="techDataCol2"]//td/text()').extract()]
         for attribute_key in attributes:
             usb_slots_pattern = re.match(r'(\d)x USB 2.0', attribute_key)
             attribute_index = attributes.index(attribute_key) + 1
@@ -118,12 +137,21 @@ class AlternateSpider(scrapy.Spider):
                     item['usb_slots'] = usb_slots_pattern.group(1)
         return item
 
-    def get_mainbord(self, row, item, response):
-        MainboardItem.convert(item)
-        item['socket'] = row.select(self.item_field['info_three']).extract()
-        item['formfactor'] = row.select(self.item_field['info_one']).extract()
+    def get_case(self, row, item, response):
+        item['name'] = item['name'][0].replace(", behuizing", "")
+        CaseItem.convert(item)
+        item['formfactor_psu'] = row.select(self.item_field['info_three']).extract()
         parsed_url = urlparse(response.url)
         link = parsed_url.scheme + '://' + parsed_url.netloc + row.select('a[@class="productLink"]/@href').extract()[0]
-        request = scrapy.Request(link, callback=self.get_mainbord2)
+        request = scrapy.Request(link, callback=self.get_case2)
         request.meta['item'] = item
         return request
+
+    def get_case2(self, response):
+        item = response.meta['item']
+        attributes = [i for i in response.xpath('//*[@id="details"]/div[4]/div/table/tr/'
+                                                'td[@class="techDataCol2"]//td/text()').extract()]
+        if 'TX' not in attributes[0]:
+            item['color'] = attributes[0]
+        item['formfactor_mobo'] = attributes[1]
+        return item
