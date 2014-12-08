@@ -44,6 +44,22 @@ class BasePipeline(object):
         itemfield = self.cleanup_field(itemfield)
         return re.match(r'^(\d+ [G|M]B) \((\w+)', itemfield).group(group)
 
+    def get_bay_type_amount(self, itemfield, search):
+        fields = [[word for word in sent.split(' ') if word != 'inch']
+                  for sent in self.cleanup_field(itemfield).split(', ')]
+        for entry in fields:
+            entry[2] = re.sub(r'e$', '', entry[2])
+
+        search = search.split(' ')
+        for entry in fields:
+            if search[0] == entry[1]:
+                if len(search) > 1:
+                    if search[1] == entry[2]:
+                        return self.validate_numerical(entry[0])
+                else:
+                    return self.validate_numerical(entry[0])
+        return 0
+
     def validate_colors(self, colorstring, validcolors):
         colors = [color for color in self.cleanup_field(colorstring).split('/')
                   if self.validate_single_color(color, validcolors)]

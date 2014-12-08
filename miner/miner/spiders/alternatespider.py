@@ -62,9 +62,8 @@ class AlternateSpider(scrapy.Spider):
                      'filter_1=&size=500&page=2&bgid=8148&lk=9309&tk=7&navId=2436']
 
 
-    # start_urls = cpu_listings + list(gpu_listings.values()) + list(memory_listings.values()) + \
-    # list(mainboard_listings.values()) + case_listings
-    start_urls = list(case_listings)
+    start_urls = cpu_listings + list(gpu_listings.values()) + list(memory_listings.values()) + \
+    list(mainboard_listings.values()) + case_listings
 
     def parse(self, response):
         rows = response.xpath('//div[@class="listRow"]')
@@ -141,6 +140,10 @@ class AlternateSpider(scrapy.Spider):
         item['name'] = item['name'][0].replace(", behuizing", "")
         CaseItem.convert(item)
         item['formfactor_psu'] = row.select(self.item_field['info_three']).extract()
+        item['external_525'] = row.select(self.item_field['info_one']).extract()
+        item['external_35'] = row.select(self.item_field['info_one']).extract()
+        item['internal_25'] = row.select(self.item_field['info_one']).extract()
+        item['internal_35'] = row.select(self.item_field['info_one']).extract()
         parsed_url = urlparse(response.url)
         link = parsed_url.scheme + '://' + parsed_url.netloc + row.select('a[@class="productLink"]/@href').extract()[0]
         request = scrapy.Request(link, callback=self.get_case2)

@@ -69,4 +69,8 @@ class ValidationPipeline(BasePipeline):
             item['formfactor_mobo'] = self.validate_formfactor(item['formfactor_mobo'])
             item['formfactor_psu'] = self.validate_mobo_psu(item['formfactor_psu'])
             item['color'] = self.validate_colors(item['color'], self._validcolors)
+            item['internal_35'] = self.get_bay_type_amount(item['internal_35'], '3,5 intern')
+            item['internal_25'] = self.get_bay_type_amount(item['internal_25'], '2,5')
+            item['external_35'] = self.get_bay_type_amount(item['external_35'], '3,5 extern')
+            item['external_525'] = self.get_bay_type_amount(item['external_525'], '5,25')
         return item
