@@ -61,9 +61,13 @@ class AlternateSpider(scrapy.Spider):
                      'http://www.alternate.nl/html/product/listing.html?filter_5=&filter_4=&filter_3=&filter_2=&'
                      'filter_1=&size=500&page=2&bgid=8148&lk=9309&tk=7&navId=2436']
 
+    psu_listings = ['http://www.alternate.nl/html/product/listing.html?filter_5=&filter_4=&filter_3=&filter_2=&'
+                    'filter_1=&size=500&bgid=8215&lk=9533&tk=7&navId=11604']
 
-    start_urls = cpu_listings + list(gpu_listings.values()) + list(memory_listings.values()) + \
-    list(mainboard_listings.values()) + case_listings
+
+    # start_urls = cpu_listings + list(gpu_listings.values()) + list(memory_listings.values()) + \
+    # list(mainboard_listings.values()) + case_listings + psu_listings
+    start_urls = psu_listings
 
     def parse(self, response):
         rows = response.xpath('//div[@class="listRow"]')
@@ -83,6 +87,8 @@ class AlternateSpider(scrapy.Spider):
                 yield self.get_mainbord(row, product, response)
             elif response.url in self.case_listings:
                 yield self.get_case(row, product, response)
+            elif response.url in self.psu_listings:
+                yield self.get_psu(row, product, response)
 
     def get_gpu(self, row, item):
         GPUItem.convert(item)
@@ -157,4 +163,20 @@ class AlternateSpider(scrapy.Spider):
         if 'TX' not in attributes[0]:
             item['color'] = attributes[0]
         item['formfactor_mobo'] = attributes[1]
+        return item
+
+    def get_psu(self, row, item, response):
+        PSUItem.convert(item)
+        item['power'] = row.xpath(self.item_field['info_one']).extract()
+        parsed_url = urlparse(response.url)
+        link = parsed_url.scheme + '://' + parsed_url.netloc + row.select('a[@class="productLink"]/@href').extract()[0]
+        request = scrapy.Request(link, callback=self.get_psu2)
+        request.meta['item'] = item
+        return request
+
+    def get_psu2(self, response):
+        item = response.meta['item']
+        attributes = [i for i in response.xpath('//*[@id="details"]/div[4]/div/table/tr/'
+                                                'td[@class="techDataCol2"]//td/text()').extract()]
+        item['formfactor'] = attributes[0]
         return item

@@ -34,7 +34,7 @@ class BasePipeline(object):
 
     def validate_numerical(self, itemfield):
         itemfield = self.cleanup_field(itemfield)
-        return int(re.sub("[^0-9]", "", itemfield))
+        return int(re.sub("[^0-9]*", "", itemfield))
 
     def get_memory_type(self, itemfield):
         itemfield = self.cleanup_field(itemfield)
