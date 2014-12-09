@@ -137,7 +137,7 @@ class AlternateSpider(scrapy.Spider):
             if attribute_index < len(attributes):
                 attribute_value = attributes[attribute_index]
                 if attribute_key == 'Geheugen socket':
-                    item['mem_slots'] = attribute_value
+                    item['mem_slots'] = attribute_value.split('x')[0]
                 elif attribute_key == 'Maximaal':
                     item['mem_max'] = attribute_value
                 elif attribute_key == 'SATA':
