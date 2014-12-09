@@ -136,6 +136,7 @@ class AlternateSpider(scrapy.Spider):
 
     def get_mainbord2(self, response):
         item = response.meta['item']
+        item['img_link'] += response.xpath('//*[@id="bigPic"]/img/@src').extract()[0]
         attributes = [i for i in response.xpath('//*[@id="details"]/div[4]/div/table/tr/'
                                                 'td[@class="techDataCol2"]//td/text()').extract()]
         for attribute_key in attributes:
@@ -151,9 +152,7 @@ class AlternateSpider(scrapy.Spider):
                     item['sata_slots'] = attribute_value
                 elif usb_slots_pattern:
                     item['usb_slots'] = usb_slots_pattern.group(1)
-        request = scrapy.Request(item['link'], callback=self.get_img_link)
-        request.meta['item'] = item
-        return request
+        return item
 
     def get_case(self, row, item, response):
         item['name'] = item['name'][0].replace(", behuizing", "")
@@ -174,9 +173,8 @@ class AlternateSpider(scrapy.Spider):
         if 'TX' not in attributes[0]:
             item['color'] = attributes[0]
         item['formfactor_mobo'] = attributes[1]
-        request = scrapy.Request(item['link'], callback=self.get_img_link)
-        request.meta['item'] = item
-        return request
+        item['img_link'] += response.xpath('//*[@id="bigPic"]/img/@src').extract()[0]
+        return item
 
     def get_psu(self, row, item, response):
         PSUItem.convert(item)
@@ -190,9 +188,8 @@ class AlternateSpider(scrapy.Spider):
         attributes = [i for i in response.xpath('//*[@id="details"]/div[4]/div/table/tr/'
                                                 'td[@class="techDataCol2"]//td/text()').extract()]
         item['formfactor'] = attributes[0]
-        request = scrapy.Request(item['link'], callback=self.get_img_link)
-        request.meta['item'] = item
-        return request
+        item['img_link'] += response.xpath('//*[@id="bigPic"]/img/@src').extract()[0]
+        return item
 
     def get_img_link(self, response):
         item = response.meta['item']
