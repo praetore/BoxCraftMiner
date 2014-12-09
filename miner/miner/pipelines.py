@@ -7,7 +7,7 @@ from scrapy.contrib.exporter import CsvItemExporter, JsonItemExporter
 from miner.basepipeline import BasePipeline
 
 
-class CsvExporterPipeline(object):
+class CsvWriterPipeline(object):
     def __init__(self):
         self.files = {}
 

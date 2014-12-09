@@ -78,6 +78,7 @@ class AlternateSpider(scrapy.Spider):
             parsed_url = urlparse(response.url)
             item['link'] = parsed_url.scheme + '://' + parsed_url.netloc + \
                            row.xpath('a[@class="productLink"]/@href').extract()[0]
+            item['img_link'] = parsed_url.scheme + '://' + parsed_url.netloc
             if response.url in self.cpu_listings:
                 item['product_type'] = 'Processor'
                 yield self.get_cpu(row, item)
@@ -103,21 +104,27 @@ class AlternateSpider(scrapy.Spider):
         item['mem_type'] = row.select(self.item_field['info_two']).extract()
         item['mem_amount'] = row.select(self.item_field['info_two']).extract()
         item['slots'] = row.select(self.item_field['info_three']).extract()
-        return item
+        request = scrapy.Request(item['link'], callback=self.get_img_link)
+        request.meta['item'] = item
+        return request
 
     def get_cpu(self, row, item):
         CPUItem.convert(item)
         item['speed'] = row.select(self.item_field['info_one']).extract()
         item['cores'] = row.select(self.item_field['info_two']).extract()
         item['socket'] = row.select(self.item_field['info_three']).extract()
-        return item
+        request = scrapy.Request(item['link'], callback=self.get_img_link)
+        request.meta['item'] = item
+        return request
 
     def get_memory(self, row, item):
         MemoryItem.convert(item)
         item['type'] = item['name']
         item['amount'] = row.select(self.item_field['info_one']).extract()
         item['slots'] = row.select(self.item_field['info_three']).extract()
-        return item
+        request = scrapy.Request(item['link'], callback=self.get_img_link)
+        request.meta['item'] = item
+        return request
 
     def get_mainbord(self, row, item, response):
         MainboardItem.convert(item)
@@ -144,7 +151,9 @@ class AlternateSpider(scrapy.Spider):
                     item['sata_slots'] = attribute_value
                 elif usb_slots_pattern:
                     item['usb_slots'] = usb_slots_pattern.group(1)
-        return item
+        request = scrapy.Request(item['link'], callback=self.get_img_link)
+        request.meta['item'] = item
+        return request
 
     def get_case(self, row, item, response):
         item['name'] = item['name'][0].replace(", behuizing", "")
@@ -165,7 +174,9 @@ class AlternateSpider(scrapy.Spider):
         if 'TX' not in attributes[0]:
             item['color'] = attributes[0]
         item['formfactor_mobo'] = attributes[1]
-        return item
+        request = scrapy.Request(item['link'], callback=self.get_img_link)
+        request.meta['item'] = item
+        return request
 
     def get_psu(self, row, item, response):
         PSUItem.convert(item)
@@ -179,4 +190,11 @@ class AlternateSpider(scrapy.Spider):
         attributes = [i for i in response.xpath('//*[@id="details"]/div[4]/div/table/tr/'
                                                 'td[@class="techDataCol2"]//td/text()').extract()]
         item['formfactor'] = attributes[0]
+        request = scrapy.Request(item['link'], callback=self.get_img_link)
+        request.meta['item'] = item
+        return request
+
+    def get_img_link(self, response):
+        item = response.meta['item']
+        item['img_link'] += response.xpath('//*[@id="bigPic"]/img/@src').extract()[0]
         return item

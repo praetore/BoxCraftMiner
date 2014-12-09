@@ -15,6 +15,7 @@ class Product(Item):
     name = Field()
     price = Field()
     link = Field()
+    img_link = Field()
 
 
 class CPUItem(Product, Converter):
