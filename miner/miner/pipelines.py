@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
+import json
 from miner.items import CPUItem, GPUItem, MemoryItem, MainboardItem, CaseItem, PSUItem
+import os
 from scrapy import signals
-from scrapy.contrib.exporter import CsvItemExporter
+from scrapy.contrib.exporter import CsvItemExporter, JsonItemExporter
 from miner.basepipeline import BasePipeline
 
 
@@ -38,7 +40,7 @@ class ValidationPipeline(BasePipeline):
             item = self.clean_fields(item)
         elif spider.name == 'computerstore':
             item = self.clean_fields(item)
-        item['id'] = self.generate_id(item, spider)
+        item['_id'] = self.generate_id(item, spider)
         return item
 
     def clean_fields(self, item):
@@ -76,3 +78,38 @@ class ValidationPipeline(BasePipeline):
         elif isinstance(item, PSUItem):
             item['power'] = self.validate_numerical(item['power'])
         return item
+
+
+class JsonWriterPipeline(object):
+    def __init__(self):
+        self.files = {
+            "Grafische kaart": 'gpus.json',
+            "Moederbord": 'mobos.json',
+            "Processor": 'cpus.json',
+            "Voeding": 'psus.json',
+            "Behuizing": 'cases.json',
+            "Geheugen": 'memory.json'
+        }
+        self.exporters = {}
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        pipeline = cls()
+        crawler.signals.connect(pipeline.spider_opened, signals.spider_opened)
+        crawler.signals.connect(pipeline.spider_closed, signals.spider_closed)
+        return pipeline
+
+    def process_item(self, item, spider):
+        self.exporters[item["product_type"]].export_item(item)
+        return item
+
+    def spider_opened(self, spider):
+        for k, v in list(self.files.items()):
+            self.files[k] = open(os.path.join('data', v), 'wb')
+            self.exporters[k] = JsonItemExporter(self.files[k])
+            self.exporters[k].start_exporting()
+
+    def spider_closed(self, spider):
+        for i in list(self.files.keys()):
+            self.exporters[i].finish_exporting()
+            self.files[i].close()

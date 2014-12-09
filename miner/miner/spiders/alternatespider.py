@@ -64,31 +64,38 @@ class AlternateSpider(scrapy.Spider):
     psu_listings = ['http://www.alternate.nl/html/product/listing.html?filter_5=&filter_4=&filter_3=&filter_2=&'
                     'filter_1=&size=500&bgid=8215&lk=9533&tk=7&navId=11604']
 
-
-    # start_urls = cpu_listings + list(gpu_listings.values()) + list(memory_listings.values()) + \
-    # list(mainboard_listings.values()) + case_listings + psu_listings
-    start_urls = psu_listings
+    start_urls = cpu_listings + list(gpu_listings.values()) + list(memory_listings.values()) + \
+                 list(mainboard_listings.values()) + case_listings + psu_listings
 
     def parse(self, response):
         rows = response.xpath('//div[@class="listRow"]')
         for row in rows:
-            product = Product()
-            product['manufacturer'] = row.xpath(self.item_field['manufacturer']).extract()
-            product['name'] = row.xpath(self.item_field['name']).extract()
-            product['price'] = row.xpath(self.item_field['price_big']).extract() + \
-                               row.xpath(self.item_field['price_small']).extract()
+            item = Product()
+            item['manufacturer'] = row.xpath(self.item_field['manufacturer']).extract()
+            item['name'] = row.xpath(self.item_field['name']).extract()
+            item['price'] = row.xpath(self.item_field['price_big']).extract() + \
+                            row.xpath(self.item_field['price_small']).extract()
+            parsed_url = urlparse(response.url)
+            item['link'] = parsed_url.scheme + '://' + parsed_url.netloc + \
+                           row.xpath('a[@class="productLink"]/@href').extract()[0]
             if response.url in self.cpu_listings:
-                yield self.get_cpu(row, product)
+                item['product_type'] = 'Processor'
+                yield self.get_cpu(row, item)
             elif response.url in self.gpu_listings.values():
-                yield self.get_gpu(row, product)
+                item['product_type'] = 'Grafische kaart'
+                yield self.get_gpu(row, item)
             elif response.url in self.memory_listings.values():
-                yield self.get_memory(row, product)
+                item['product_type'] = 'Geheugen'
+                yield self.get_memory(row, item)
             elif response.url in self.mainboard_listings.values():
-                yield self.get_mainbord(row, product, response)
+                item['product_type'] = 'Moederbord'
+                yield self.get_mainbord(row, item, response)
             elif response.url in self.case_listings:
-                yield self.get_case(row, product, response)
+                item['product_type'] = 'Behuizing'
+                yield self.get_case(row, item, response)
             elif response.url in self.psu_listings:
-                yield self.get_psu(row, product, response)
+                item['product_type'] = 'Voeding'
+                yield self.get_psu(row, item, response)
 
     def get_gpu(self, row, item):
         GPUItem.convert(item)
@@ -116,10 +123,7 @@ class AlternateSpider(scrapy.Spider):
         MainboardItem.convert(item)
         item['socket'] = row.select(self.item_field['info_three']).extract()
         item['formfactor'] = row.select(self.item_field['info_one']).extract()
-        parsed_url = urlparse(response.url)
-        link = parsed_url.scheme + '://' + parsed_url.netloc + \
-               row.select('a[@class="productLink"]/@href').extract()[0]
-        request = scrapy.Request(link, callback=self.get_mainbord2)
+        request = scrapy.Request(item['link'], callback=self.get_mainbord2)
         request.meta['item'] = item
         return request
 
@@ -150,9 +154,7 @@ class AlternateSpider(scrapy.Spider):
         item['external_35'] = row.select(self.item_field['info_one']).extract()
         item['internal_25'] = row.select(self.item_field['info_one']).extract()
         item['internal_35'] = row.select(self.item_field['info_one']).extract()
-        parsed_url = urlparse(response.url)
-        link = parsed_url.scheme + '://' + parsed_url.netloc + row.select('a[@class="productLink"]/@href').extract()[0]
-        request = scrapy.Request(link, callback=self.get_case2)
+        request = scrapy.Request(item['link'], callback=self.get_case2)
         request.meta['item'] = item
         return request
 
@@ -168,9 +170,7 @@ class AlternateSpider(scrapy.Spider):
     def get_psu(self, row, item, response):
         PSUItem.convert(item)
         item['power'] = row.xpath(self.item_field['info_one']).extract()
-        parsed_url = urlparse(response.url)
-        link = parsed_url.scheme + '://' + parsed_url.netloc + row.select('a[@class="productLink"]/@href').extract()[0]
-        request = scrapy.Request(link, callback=self.get_psu2)
+        request = scrapy.Request(item['link'], callback=self.get_psu2)
         request.meta['item'] = item
         return request
 

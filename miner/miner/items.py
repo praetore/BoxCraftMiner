@@ -9,10 +9,12 @@ class Converter(object):
 
 
 class Product(Item):
-    id = Field()
+    _id = Field()
+    product_type = Field()
     manufacturer = Field()
     name = Field()
     price = Field()
+    link = Field()
 
 
 class CPUItem(Product, Converter):

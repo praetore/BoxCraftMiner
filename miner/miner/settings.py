@@ -12,7 +12,7 @@ BOT_NAME = 'miner'
 
 SPIDER_MODULES = ['miner.spiders']
 NEWSPIDER_MODULE = 'miner.spiders'
-ITEM_PIPELINES = {'miner.pipelines.ValidationPipeline': 100, 'miner.pipelines.CsvExporterPipeline': 200}
+ITEM_PIPELINES = {'miner.pipelines.ValidationPipeline': 100, 'miner.pipelines.JsonWriterPipeline': 200}
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'miner (+http://www.yourdomain.com)'
