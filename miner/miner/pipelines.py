@@ -23,7 +23,7 @@ class CsvWriterPipeline(object):
         return item
 
     def spider_opened(self, spider):
-        csvfile = open('%s_products.csv' % spider.name, 'w+b')
+        csvfile = open('data/%s_products.csv' % spider.name, 'w+b')
         self.files[spider.name] = csvfile
         self.exporter = CsvItemExporter(csvfile, delimiter=';')
         self.exporter.start_exporting()
@@ -88,7 +88,8 @@ class JsonWriterPipeline(object):
             "Processor": 'cpus.json',
             "Voeding": 'psus.json',
             "Behuizing": 'cases.json',
-            "Geheugen": 'memory.json'
+            "Geheugen": 'memory.json',
+            'Harde schijf': 'hdds.json'
         }
         self.exporters = {}
 

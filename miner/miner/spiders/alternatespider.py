@@ -2,7 +2,7 @@
 import re
 from urlparse import urlparse
 import scrapy
-from miner.items import CPUItem, GPUItem, Product, MemoryItem, MainboardItem, CaseItem, PSUItem
+from miner.items import CPUItem, GPUItem, Product, MemoryItem, MainboardItem, CaseItem, PSUItem, HDDItem
 
 
 class AlternateSpider(scrapy.Spider):
@@ -53,7 +53,8 @@ class AlternateSpider(scrapy.Spider):
         'price_big': 'div[@class="waresSum"]/p/span[@class="price right right10"]/'
                      'text()',
         'price_small': 'div[@class="waresSum"]/p/span[@class="price right right10"]/'
-                       'sup/text()'
+                       'sup/text()',
+        'attributes': '//*[@id="details"]/div[4]/div/table/tr/td[@class="techDataCol2"]//td/text()'
     }
 
     case_listings = ['http://www.alternate.nl/html/product/listing.html?filter_5=&filter_4=&filter_3=&filter_2=&'
@@ -64,8 +65,19 @@ class AlternateSpider(scrapy.Spider):
     psu_listings = ['http://www.alternate.nl/html/product/listing.html?filter_5=&filter_4=&filter_3=&filter_2=&'
                     'filter_1=&size=500&bgid=8215&lk=9533&tk=7&navId=11604']
 
-    start_urls = cpu_listings + list(gpu_listings.values()) + list(memory_listings.values()) + \
-                 list(mainboard_listings.values()) + case_listings + psu_listings
+    hdd_listings = {
+        "SSD": 'http://www.alternate.nl/html/product/listing.html?navId=11890&bgid=8985&tk=7&lk=9585',
+        "SATA": 'http://www.alternate.nl/html/product/listing.html?navId=11584&bgid=8459&tk=7&lk=9563',
+        "Hybride": 'http://www.alternate.nl/html/product/listing.html?navId=17557&bgid=8459&tk=7&lk=9601'
+    }
+
+    start_urls = cpu_listings + \
+                 list(gpu_listings.values()) + \
+                 list(memory_listings.values()) + \
+                 list(mainboard_listings.values()) + \
+                 case_listings + \
+                 psu_listings + \
+                 hdd_listings.values()
 
     def parse(self, response):
         rows = response.xpath('//div[@class="listRow"]')
@@ -97,6 +109,35 @@ class AlternateSpider(scrapy.Spider):
             elif response.url in self.psu_listings:
                 item['product_type'] = 'Voeding'
                 yield self.get_psu(row, item, response)
+            elif response.url in self.hdd_listings.values():
+                item['product_type'] = 'Harde schijf'
+                yield self.get_hdd(row, item, response)
+
+    def get_hdd(self, row, item, response):
+        HDDItem.convert(item)
+        for k, v in self.hdd_listings.items():
+            if response.url == v:
+                item['type'] = k
+                break
+        item['capacity'] = self.item_field['info_one']
+        request = scrapy.Request(item['link'], callback=self.get_hdd2)
+        request.meta['item'] = item
+        return request
+
+    def get_hdd2(self, response):
+        item = response.meta['item']
+        item['img_link'] += response.xpath('//*[@id="bigPic"]/img/@src').extract()[0]
+        attributes = [i for i in response.xpath(self.item_field['attributes']).extract()]
+        if 'inch' not in attributes[2]:
+            item['physical_size'] = 'Onbekend'
+        else:
+            item['physical_size'] = attributes[2]
+
+        if 'ATA' not in attributes[5]:
+            item['interface'] = 'Onbekend'
+        else:
+            item['interface'] = attributes[5]
+        return item
 
     def get_gpu(self, row, item):
         GPUItem.convert(item)
@@ -137,8 +178,7 @@ class AlternateSpider(scrapy.Spider):
     def get_mainbord2(self, response):
         item = response.meta['item']
         item['img_link'] += response.xpath('//*[@id="bigPic"]/img/@src').extract()[0]
-        attributes = [i for i in response.xpath('//*[@id="details"]/div[4]/div/table/tr/'
-                                                'td[@class="techDataCol2"]//td/text()').extract()]
+        attributes = [i for i in response.xpath(self.item_field['attributes']).extract()]
         for attribute_key in attributes:
             usb_slots_pattern = re.match(r'(\d)x USB 2.0', attribute_key)
             attribute_index = attributes.index(attribute_key) + 1
@@ -168,8 +208,7 @@ class AlternateSpider(scrapy.Spider):
 
     def get_case2(self, response):
         item = response.meta['item']
-        attributes = [i for i in response.xpath('//*[@id="details"]/div[4]/div/table/tr/'
-                                                'td[@class="techDataCol2"]//td/text()').extract()]
+        attributes = [i for i in response.xpath(self.item_field['attributes']).extract()]
         if 'TX' not in attributes[0]:
             item['color'] = attributes[0]
         item['formfactor_mobo'] = attributes[1]
@@ -185,8 +224,7 @@ class AlternateSpider(scrapy.Spider):
 
     def get_psu2(self, response):
         item = response.meta['item']
-        attributes = [i for i in response.xpath('//*[@id="details"]/div[4]/div/table/tr/'
-                                                'td[@class="techDataCol2"]//td/text()').extract()]
+        attributes = [i for i in response.xpath(self.item_field['attributes']).extract()]
         item['formfactor'] = attributes[0]
         item['img_link'] += response.xpath('//*[@id="bigPic"]/img/@src').extract()[0]
         return item

@@ -59,3 +59,10 @@ class CaseItem(Product, Converter):
     external_35 = Field()
     external_525 = Field()
     color = Field()
+
+
+class HDDItem(Product, Converter):
+    type = Field()
+    physical_size = Field()
+    interface = Field()
+    capacity = Field()
