@@ -105,8 +105,11 @@ class JsonWriterPipeline(object):
         return item
 
     def spider_opened(self, spider):
+	directory = 'data'
+	if not os.path.exists(directory):
+	    os.makedirs(directory)
         for k, v in list(self.files.items()):
-            self.files[k] = open(os.path.join('data', v), 'wb')
+            self.files[k] = open(os.path.join(directory, v), 'wb')
             self.exporters[k] = JsonItemExporter(self.files[k])
             self.exporters[k].start_exporting()
 
