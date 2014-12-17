@@ -91,6 +91,7 @@ class AlternateSpider(scrapy.Spider):
             item['link'] = parsed_url.scheme + '://' + parsed_url.netloc + \
                            row.xpath('a[@class="productLink"]/@href').extract()[0]
             item['img_link'] = parsed_url.scheme + '://' + parsed_url.netloc
+            item['supplier'] = self.name.title()
             if response.url in self.cpu_listings:
                 item['product_type'] = 'Processor'
                 yield self.get_cpu(row, item)
