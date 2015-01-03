@@ -5,12 +5,12 @@ then
 	echo "Must pass spider as argument";exit 0
 fi
 
-if [ -z "$2"];
+if [ -z "$2" ];
 then
 	echo "Must pass username as argument";exit 0
 fi
 
-if [ -z "$3"];
+if [ -z "$3" ];
 then
 	echo "Must pass password as argument";exit 0
 fi
