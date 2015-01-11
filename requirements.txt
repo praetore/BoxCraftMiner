@@ -1,3 +1,4 @@
+requests
 SQLAlchemy==0.9.8
 Scrapy==0.24.4
 Twisted==14.0.2

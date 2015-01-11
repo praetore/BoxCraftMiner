@@ -64,8 +64,8 @@ class BasePipeline(object):
         colors = [color for color in self.cleanup_field(colorstring).split('/')
                   if self.validate_single_color(color, validcolors)]
         if not len(colors):
-            return ['Zwart']
-        return colors
+            return 'Zwart'
+        return colors[0]
 
     def validate_single_color(self, colorstring, validcolors):
         if ' ' in colorstring:
@@ -90,6 +90,6 @@ class BasePipeline(object):
         mobofostring = [i.lstrip() for i in self.cleanup_field(mobofostring).split(',')
                         if i.lstrip() in self._validformfactors]
         if not len(mobofostring):
-            return ['Onbekend']
+            return 'Onbekend'
         else:
-            return mobofostring
+            return mobofostring[0]

@@ -1,15 +1,25 @@
 # -*- coding: utf-8 -*-
 import json
-from miner.items import CPUItem, GPUItem, MemoryItem, MainboardItem, CaseItem, PSUItem
+from miner.items import CPUItem, GPUItem, MemoryItem, MainboardItem, CaseItem, PSUItem, HDDItem
 import os
+import requests
 from scrapy import signals
-from scrapy.contrib.exporter import CsvItemExporter, JsonItemExporter
+from scrapy.contrib.exporter import CsvItemExporter
 from miner.basepipeline import BasePipeline
 
 
 class CsvWriterPipeline(object):
     def __init__(self):
-        self.files = {}
+        self.files = {
+            "Grafische kaart": 'gpus.csv',
+            "Moederbord": 'mobos.csv',
+            "Processor": 'cpus.csv',
+            "Voeding": 'psus.csv',
+            "Behuizing": 'cases.csv',
+            "Geheugen": 'memory.csv',
+            'Harde schijf': 'hdds.csv'
+        }
+        self.exporters = {}
 
     @classmethod
     def from_crawler(cls, crawler):
@@ -19,28 +29,28 @@ class CsvWriterPipeline(object):
         return pipeline
 
     def process_item(self, item, spider):
-        self.exporter.export_item(item)
+        self.exporters[item["product_type"]].export_item(item)
         return item
 
     def spider_opened(self, spider):
-        csvfile = open('data/%s_products.csv' % spider.name, 'w+b')
-        self.files[spider.name] = csvfile
-        self.exporter = CsvItemExporter(csvfile, delimiter=';')
-        self.exporter.start_exporting()
+        directory = 'data'
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        for k, v in list(self.files.items()):
+            self.files[k] = open(os.path.join(directory, v), 'wb')
+            self.exporters[k] = CsvItemExporter(self.files[k], delimiter=';')
+            self.exporters[k].start_exporting()
 
     def spider_closed(self, spider):
-        self.exporter.finish_exporting()
-        csvfile = self.files.pop(spider.name)
-        csvfile.close()
+        for i in list(self.files.keys()):
+            self.exporters[i].finish_exporting()
+            self.files[i].close()
 
 
 class ValidationPipeline(BasePipeline):
     def process_item(self, item, spider):
         if spider.name == 'alternate':
             item = self.clean_fields(item)
-        elif spider.name == 'computerstore':
-            item = self.clean_fields(item)
-        item['_id'] = self.generate_id(item, spider)
         return item
 
     def clean_fields(self, item):
@@ -77,43 +87,25 @@ class ValidationPipeline(BasePipeline):
             item['external_525'] = self.get_bay_type_amount(item['external_525'], '5,25')
         elif isinstance(item, PSUItem):
             item['power'] = self.validate_numerical(item['power'])
+        elif isinstance(item, HDDItem):
+            item['capacity'] = self.cleanup_field(item['capacity'])
         return item
 
 
-class JsonWriterPipeline(object):
+class PostRequestPipeline(object):
     def __init__(self):
-        self.files = {
-            "Grafische kaart": 'gpus.json',
-            "Moederbord": 'mobos.json',
-            "Processor": 'cpus.json',
-            "Voeding": 'psus.json',
-            "Behuizing": 'cases.json',
-            "Geheugen": 'memory.json',
-            'Harde schijf': 'hdds.json'
+        self.paths = {
+            "Grafische kaart": 'videokaarten',
+            "Moederbord": 'moederborden',
+            "Processor": 'processoren',
+            "Voeding": 'voedingen',
+            "Behuizing": 'behuizingen',
+            "Geheugen": 'geheugen',
+            'Harde schijf': 'harddisks'
         }
-        self.exporters = {}
-
-    @classmethod
-    def from_crawler(cls, crawler):
-        pipeline = cls()
-        crawler.signals.connect(pipeline.spider_opened, signals.spider_opened)
-        crawler.signals.connect(pipeline.spider_closed, signals.spider_closed)
-        return pipeline
 
     def process_item(self, item, spider):
-        self.exporters[item["product_type"]].export_item(item)
+        requests.post('http://127.0.0.1:5000/api/' + self.paths[item['product_type']],
+                      data=json.dumps(dict(item)),
+                      headers={'Content-Type': 'application/json'})
         return item
-
-    def spider_opened(self, spider):
-	directory = 'data'
-	if not os.path.exists(directory):
-	    os.makedirs(directory)
-        for k, v in list(self.files.items()):
-            self.files[k] = open(os.path.join(directory, v), 'wb')
-            self.exporters[k] = JsonItemExporter(self.files[k])
-            self.exporters[k].start_exporting()
-
-    def spider_closed(self, spider):
-        for i in list(self.files.keys()):
-            self.exporters[i].finish_exporting()
-            self.files[i].close()

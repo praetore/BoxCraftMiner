@@ -1,7 +1,0 @@
-behuizingen,cases.json
-processoren,cpus.json
-videokaarten,gpus.json
-geheugen,memory.json
-moederborden,mobos.json
-voedingen,psus.json
-harddisks,hdds.json

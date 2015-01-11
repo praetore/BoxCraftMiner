@@ -9,7 +9,6 @@ class Converter(object):
 
 
 class Product(Item):
-    _id = Field()
     product_type = Field()
     manufacturer = Field()
     name = Field()

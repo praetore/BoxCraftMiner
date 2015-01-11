@@ -120,7 +120,7 @@ class AlternateSpider(scrapy.Spider):
             if response.url == v:
                 item['type'] = k
                 break
-        item['capacity'] = self.item_field['info_one']
+        item['capacity'] = row.select(self.item_field['info_one']).extract()
         request = scrapy.Request(item['link'], callback=self.get_hdd2)
         request.meta['item'] = item
         return request
