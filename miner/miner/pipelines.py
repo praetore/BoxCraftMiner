@@ -108,13 +108,13 @@ class PostRequestPipeline(object):
             'Harde schijf': 'harddisks'
         }
         try:
-            server = os.environ['OPENSHIFT_APP_DNS']
+            self.server = os.environ['OPENSHIFT_APP_DNS']
         except KeyError:
-            server = 'http://127.0.0.1:5000/'
-        server = server + "api/"
+            self.server = 'http://127.0.0.1:5000/'
+        self.server += "api/"
 
     def process_item(self, item, spider):
-        url = server + self.paths[item['product_type']]
+        url = self.server + self.paths[item['product_type']]
         headers = {'Content-Type': 'application/json'}
 
         filters = [dict(name='hash', op='eq', val=item['hash'])]
