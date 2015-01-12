@@ -33,9 +33,12 @@ class CsvWriterPipeline(object):
         return item
 
     def spider_opened(self, spider):
-        directory = 'data'
-        if not os.path.exists(directory):
-            os.makedirs(directory)
+        try:
+            directory = os.environ('OPENSHIFT_DATA_DIR')
+        except KeyError:
+            directory = 'data'
+            if not os.path.exists(directory):
+                os.makedirs(directory)
         for k, v in list(self.files.items()):
             self.files[k] = open(os.path.join(directory, v), 'wb')
             self.exporters[k] = CsvItemExporter(self.files[k], delimiter=';')
