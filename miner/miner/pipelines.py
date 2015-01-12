@@ -104,9 +104,14 @@ class PostRequestPipeline(object):
             "Geheugen": 'geheugen',
             'Harde schijf': 'harddisks'
         }
+        try:
+            server = os.environ('OPENSHIFT_APP_DNS')
+        except KeyError:
+            server = 'http://127.0.0.1:5000/'
+        server = server + "api/"
 
     def process_item(self, item, spider):
-        requests.post('http://127.0.0.1:5000/api/' + self.paths[item['product_type']],
+        requests.post(server + self.paths[item['product_type']],
                       data=json.dumps(dict(item)),
                       headers={'Content-Type': 'application/json'})
         return item
