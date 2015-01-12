@@ -51,6 +51,7 @@ class ValidationPipeline(BasePipeline):
     def process_item(self, item, spider):
         if spider.name == 'alternate':
             item = self.clean_fields(item)
+        item['hash'] = self.generate_id(item, spider)
         return item
 
     def clean_fields(self, item):

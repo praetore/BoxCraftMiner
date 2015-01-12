@@ -9,6 +9,7 @@ class Converter(object):
 
 
 class Product(Item):
+    hash = Field()
     product_type = Field()
     manufacturer = Field()
     name = Field()
