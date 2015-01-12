@@ -110,8 +110,8 @@ class PostRequestPipeline(object):
         try:
             self.server = os.environ['OPENSHIFT_APP_DNS']
         except KeyError:
-            self.server = 'http://127.0.0.1:5000/'
-        self.server += "api/"
+            self.server = 'http://127.0.0.1:5000'
+        self.server += "/api/"
 
     def process_item(self, item, spider):
         url = self.server + self.paths[item['product_type']]
@@ -121,7 +121,7 @@ class PostRequestPipeline(object):
         params = dict(q=json.dumps(dict(filters=filters)))
 
         exists = requests.get(url, params=params, headers=headers)
-        if exists.status_code != 200:
+        if json.loads(exists.text)["num_results"] == 0:
             requests.post(url,
                           data=json.dumps(dict(item)),
                           headers=headers)
