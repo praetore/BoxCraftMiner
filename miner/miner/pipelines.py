@@ -34,7 +34,7 @@ class CsvWriterPipeline(object):
 
     def spider_opened(self, spider):
         try:
-            directory = os.environ('OPENSHIFT_DATA_DIR')
+            directory = os.environ['OPENSHIFT_DATA_DIR']
         except KeyError:
             directory = 'data'
             if not os.path.exists(directory):
@@ -108,7 +108,7 @@ class PostRequestPipeline(object):
             'Harde schijf': 'harddisks'
         }
         try:
-            server = os.environ('OPENSHIFT_APP_DNS')
+            server = os.environ['OPENSHIFT_APP_DNS']
         except KeyError:
             server = 'http://127.0.0.1:5000/'
         server = server + "api/"
