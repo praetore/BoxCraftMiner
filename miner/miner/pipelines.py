@@ -111,7 +111,15 @@ class PostRequestPipeline(object):
         server = server + "api/"
 
     def process_item(self, item, spider):
-        requests.post(server + self.paths[item['product_type']],
-                      data=json.dumps(dict(item)),
-                      headers={'Content-Type': 'application/json'})
+        url = server + self.paths[item['product_type']]
+        headers = {'Content-Type': 'application/json'}
+
+        filters = [dict(name='hash', op='eq', val=item['hash'])]
+        params = dict(q=json.dumps(dict(filters=filters)))
+
+        exists = requests.get(url, params=params, headers=headers)
+        if exists.status_code != 200:
+            requests.post(url,
+                          data=json.dumps(dict(item)),
+                          headers=headers)
         return item
